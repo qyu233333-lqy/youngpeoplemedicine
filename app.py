@@ -36,6 +36,9 @@ def get_db():
     return conn
 
 
+# 关键修复：模块加载时就初始化数据库（不只是 __main__ 时）
+
+
 def init_db():
     conn = get_db()
     conn.execute('''
@@ -86,6 +89,10 @@ def init_db():
             )
         conn.commit()
     conn.close()
+
+
+# 模块加载时初始化数据库（不只是 __main__ 时）
+init_db()
 
 
 # ============== 业务工具 ==============
@@ -556,7 +563,6 @@ def uploaded_file(filename):
 
 # ============== 启动 ==============
 if __name__ == '__main__':
-    init_db()
     print('=' * 50)
     print('🏠 智能药箱 Demo')
     print('=' * 50)
@@ -564,4 +570,4 @@ if __name__ == '__main__':
     print(f'📂 上传目录: {UPLOAD_DIR}')
     print('🌐 访问: http://localhost:5050')
     print('=' * 50)
-    app.run(debug=True, port=5050)
+    app.run(debug=False, host='0.0.0.0', port=int(os.environ.get('PORT', 5050)))
