@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ medicine.name }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .device-frame {
+            background: #000;
+            border-radius: 24px;
+            padding: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5), inset 0 0 0 2px #333;
+        }
+        .screen {
+            background: #fafaf7;
+            border-radius: 14px;
+            width: 100%;
+            max-width: 420px;
+            min-height: 720px;
+        }
+    </style>
+</head>
+<body>
+    <div class="device-frame">
+        <div class="screen">
+
+            <header class="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-3">
+                <div class="flex items-center gap-3">
+                    <a href="{{ url_for('index') }}" class="text-white/80">←</a>
+                    <h1 class="text-lg font-bold">药品详情</h1>
+                </div>
+            </header>
+
+            <main class="px-4 py-4">
+
+                <!-- 位置高亮 - 核心信息 -->
+                <div class="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-2xl p-5 mb-4 shadow-lg">
+                    <div class="text-xs opacity-80 mb-1">📍 药箱位置</div>
+                    <div class="text-3xl font-bold">{{ medicine.location }}</div>
+                    <div class="text-sm opacity-90 mt-2">直接打开这个位置就能拿到</div>
+                </div>
+
+                <!-- 标题 + 状态 -->
+                <div class="bg-white rounded-2xl p-4 mb-3 shadow-sm">
+                    <div class="flex items-start justify-between pb-3 border-b">
+                        <div>
+                            <h2 class="text-2xl font-bold text-gray-900">{{ medicine.name }}</h2>
+                            <p class="text-sm text-gray-500 mt-1">{{ medicine.brand }}{% if medicine.spec %} · {{ medicine.spec }}{% endif %}</p>
+                        </div>
+                        <span class="px-3 py-1 rounded-full text-xs
+                                     {% if medicine.color == 'red' %}bg-red-100 text-red-700
+                                     {% elif medicine.color == 'yellow' %}bg-yellow-100 text-yellow-700
+                                     {% else %}bg-green-100 text-green-700{% endif %}">
+                            {{ medicine.days_text }}
+                        </span>
+                    </div>
+
+                    <div class="pt-3 space-y-3">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-500">分类</span>
+                            <span class="font-medium">{{ medicine.category }}</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-500">剩余</span>
+                            <div class="flex items-center gap-2">
+                                <button onclick="adjustRemaining(-10)" class="w-7 h-7 bg-gray-100 rounded">-</button>
+                                <span class="font-medium w-12 text-center" id="remaining-display">{{ medicine.remaining_pct }}%</span>
+                                <button onclick="adjustRemaining(10)" class="w-7 h-7 bg-gray-100 rounded">+</button>
+                            </div>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-500">有效期</span>
+                            <span class="font-medium">{{ medicine.expiry_date or '未知' }}</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-500">入库时间</span>
+                            <span class="font-medium">{{ medicine.created_at[:10] }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 修改位置 -->
+                <div class="bg-white rounded-2xl p-4 mb-3 shadow-sm">
+                    <label class="text-sm text-gray-700 font-medium">📍 修改位置</label>
+                    <div class="mt-2 flex gap-2">
+                        <select id="location-select" class="flex-1 px-3 py-2 border rounded-lg">
+                            <option value="抽屉A·第1格" {% if medicine.location == '抽屉A·第1格' %}selected{% endif %}>抽屉A·第1格</option>
+                            <option value="抽屉A·第2格" {% if medicine.location == '抽屉A·第2格' %}selected{% endif %}>抽屉A·第2格</option>
+                            <option value="抽屉A·第3格" {% if medicine.location == '抽屉A·第3格' %}selected{% endif %}>抽屉A·第3格</option>
+                            <option value="抽屉B·第1格" {% if medicine.location == '抽屉B·第1格' %}selected{% endif %}>抽屉B·第1格</option>
+                            <option value="抽屉B·第2格" {% if medicine.location == '抽屉B·第2格' %}selected{% endif %}>抽屉B·第2格</option>
+                            <option value="抽屉B·第3格" {% if medicine.location == '抽屉B·第3格' %}selected{% endif %}>抽屉B·第3格</option>
+                            <option value="上层·小盒" {% if medicine.location == '上层·小盒' %}selected{% endif %}>上层·小盒</option>
+                            <option value="中层·小盒" {% if medicine.location == '中层·小盒' %}selected{% endif %}>中层·小盒</option>
+                            <option value="下层·大盒" {% if medicine.location == '下层·大盒' %}selected{% endif %}>下层·大盒</option>
+                        </select>
+                        <button onclick="updateLocation()" class="px-4 py-2 bg-blue-600 text-white rounded-lg">保存</button>
+                    </div>
+                </div>
+
+                <!-- 备注 -->
+                {% if medicine.notes %}
+                <div class="bg-white rounded-2xl p-4 mb-3 shadow-sm">
+                    <div class="text-sm text-gray-500 mb-1">备注</div>
+                    <div class="text-gray-700">{{ medicine.notes }}</div>
+                </div>
+                {% endif %}
+
+                <!-- 操作 -->
+                <div class="space-y-2">
+                    <button onclick="discardMedicine()" class="w-full py-3 bg-white border border-red-300 text-red-600 rounded-2xl hover:bg-red-50">
+                        🗑️ 标记为丢弃
+                    </button>
+                    <a href="{{ url_for('index') }}" class="block w-full py-3 text-center bg-gray-100 text-gray-700 rounded-2xl">
+                        返回药箱屏幕
+                    </a>
+                </div>
+
+                <!-- 边界声明 -->
+                <div class="mt-6 text-xs text-gray-400 text-center">
+                    边界声明：不提供症状推荐或用药建议<br>
+                    吃什么、吃多少由你和医生决定
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        const MEDICINE_ID = {{ medicine.id }};
+        let currentRemaining = {{ medicine.remaining_pct }};
+
+        function adjustRemaining(delta) {
+            const newVal = Math.max(0, Math.min(100, currentRemaining + delta));
+            if (newVal === currentRemaining) return;
+            currentRemaining = newVal;
+            document.getElementById('remaining-display').textContent = newVal + '%';
+            updateField('remaining_pct', newVal);
+        }
+
+        async function updateField(field, value) {
+            const payload = {
+                name: '{{ medicine.name }}',
+                brand: '{{ medicine.brand }}',
+                spec: '{{ medicine.spec }}',
+                category: '{{ medicine.category }}',
+                location: document.getElementById('location-select').value,
+                expiry_date: '{{ medicine.expiry_date or "" }}',
+                remaining_pct: currentRemaining,
+                notes: '{{ medicine.notes or "" }}',
+            };
+            payload[field] = value;
+            await fetch(`/api/medicines/${MEDICINE_ID}`, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            });
+        }
+
+        async function updateLocation() {
+            await updateField('location', document.getElementById('location-select').value);
+            alert('位置已保存');
+        }
+
+        async function discardMedicine() {
+            if (!confirm('确定要标记为丢弃吗？')) return;
+            await fetch(`/api/medicines/${MEDICINE_ID}/discard`, {method: 'POST'});
+            location.href = '{{ url_for("index") }}';
+        }
+    </script>
+</body>
+</html>

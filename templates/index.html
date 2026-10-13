@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能药箱屏幕</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 模拟智能药箱屏幕外观 */
+        body {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .device-frame {
+            background: #000;
+            border-radius: 24px;
+            padding: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5), inset 0 0 0 2px #333;
+        }
+        .screen {
+            background: #fafaf7;
+            border-radius: 14px;
+            width: 100%;
+            max-width: 420px;
+            height: 720px;
+            overflow-y: auto;
+            position: relative;
+        }
+        .led {
+            position: absolute;
+            top: 6px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4ade80;
+            box-shadow: 0 0 8px #4ade80;
+        }
+        /* 滚动条样式 */
+        .screen::-webkit-scrollbar { width: 4px; }
+        .screen::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 2px; }
+    </style>
+</head>
+<body>
+    <div class="device-frame">
+        <div class="led"></div>
+        <div class="screen">
+
+            <!-- 屏幕顶部 -->
+            <header class="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-3">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <span class="text-2xl">🏠</span>
+                        <div>
+                            <h1 class="text-lg font-bold">智能药箱</h1>
+                            <p class="text-xs opacity-80">{{ total_count }} 种药品 · 就绪</p>
+                        </div>
+                    </div>
+                    <a href="{{ url_for('search') }}" class="text-xs bg-white/20 px-3 py-1 rounded-full">
+                        🔍 搜索
+                    </a>
+                </div>
+                {% if expired_count > 0 or expiring_count > 0 %}
+                <div class="mt-2 flex gap-2 text-xs">
+                    {% if expired_count > 0 %}
+                    <span class="bg-red-500 px-2 py-1 rounded-full">⚠️ {{ expired_count }}过期</span>
+                    {% endif %}
+                    {% if expiring_count > 0 %}
+                    <span class="bg-yellow-500 px-2 py-1 rounded-full">⏰ {{ expiring_count }}即将</span>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </header>
+
+            <!-- 主功能按钮 -->
+            <div class="px-4 py-3 bg-white border-b">
+                <a href="{{ url_for('search') }}"
+                   class="block w-full bg-blue-600 text-white text-center py-3 rounded-xl font-medium text-lg shadow-sm hover:bg-blue-700 transition">
+                    🔍 找药（按症状 / 名称）
+                </a>
+                <p class="text-xs text-gray-500 text-center mt-2">
+                    💡 不用翻抽屉，问药箱就行
+                </p>
+            </div>
+
+            <!-- 分类筛选 -->
+            <div class="px-4 py-2 bg-gray-50 overflow-x-auto">
+                <div class="flex gap-2">
+                    {% for cat in categories %}
+                    <a href="{{ url_for('index', category=cat) }}"
+                       class="px-3 py-1.5 rounded-full text-xs whitespace-nowrap
+                              {% if cat == current_category %}
+                              bg-blue-600 text-white
+                              {% else %}
+                              bg-white text-gray-600 border border-gray-200
+                              {% endif %}">
+                        {{ cat }}
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- 药品清单（核心展示）-->
+            <main class="px-4 py-3">
+                {% if medicines %}
+                    <div class="space-y-2">
+                        {% for m in medicines %}
+                        <a href="{{ url_for('medicine_detail', mid=m.id) }}"
+                           class="block bg-white border-2 rounded-lg p-3 hover:shadow-md transition
+                                  {% if m.color == 'red' %}border-red-400
+                                  {% elif m.color == 'yellow' %}border-yellow-400
+                                  {% else %}border-gray-200{% endif %}">
+                            <div class="flex items-start justify-between">
+                                <div class="flex-1 min-w-0">
+                                    <h3 class="font-semibold text-gray-900 truncate">{{ m.name }}</h3>
+                                    <div class="flex items-center gap-1 mt-1 text-xs">
+                                        <span class="bg-gray-100 px-2 py-0.5 rounded">📍 {{ m.location }}</span>
+                                        <span class="text-gray-500">剩 {{ m.remaining_pct }}%</span>
+                                    </div>
+                                </div>
+                                <div class="text-right ml-2 flex-shrink-0">
+                                    <div class="text-xs font-bold
+                                                {% if m.color == 'red' %}text-red-600
+                                                {% elif m.color == 'yellow' %}text-yellow-600
+                                                {% else %}text-green-600{% endif %}">
+                                        {% if m.color == 'red' %}⚠️{% elif m.color == 'yellow' %}⏰{% else %}✓{% endif %}
+                                    </div>
+                                    <div class="text-xs
+                                                {% if m.color == 'red' %}text-red-600
+                                                {% elif m.color == 'yellow' %}text-yellow-600
+                                                {% else %}text-gray-500{% endif %}">
+                                        {{ m.days_text }}
+                                    </div>
+                                </div>
+                            </div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-12 text-gray-400">
+                        <div class="text-5xl mb-3">📦</div>
+                        <p class="text-sm">药箱是空的</p>
+                    </div>
+                {% endif %}
+            </main>
+
+            <!-- 底部操作 -->
+            <footer class="sticky bottom-0 bg-white border-t px-4 py-3 flex gap-2">
+                <a href="{{ url_for('scan') }}"
+                   class="flex-1 bg-gray-100 text-gray-700 text-center py-2 rounded-lg text-sm">
+                    ➕ 添加药品
+                </a>
+                <a href="{{ url_for('search') }}"
+                   class="flex-1 bg-blue-600 text-white text-center py-2 rounded-lg text-sm font-medium">
+                    🔍 找药
+                </a>
+            </footer>
+
+            <!-- 边界声明 -->
+            <div class="px-4 py-3 text-xs text-gray-400 text-center border-t">
+                边界声明：本产品不提供症状推荐、疾病诊断或用药建议<br>
+                吃什么、吃多少由你和医生决定
+            </div>
+        </div>
+    </div>
+</body>
+</html>

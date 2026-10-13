@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>找药</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .device-frame {
+            background: #000;
+            border-radius: 24px;
+            padding: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5), inset 0 0 0 2px #333;
+        }
+        .screen {
+            background: #fafaf7;
+            border-radius: 14px;
+            width: 100%;
+            max-width: 420px;
+            min-height: 720px;
+        }
+    </style>
+</head>
+<body>
+    <div class="device-frame">
+        <div class="screen">
+
+            <header class="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-3">
+                <div class="flex items-center gap-3">
+                    <a href="{{ url_for('index') }}" class="text-white/80">←</a>
+                    <h1 class="text-lg font-bold">🔍 找药</h1>
+                </div>
+            </header>
+
+            <!-- 搜索框 -->
+            <div class="px-4 py-3 bg-white border-b">
+                <form method="GET" class="flex gap-2">
+                    <input type="text" name="q" value="{{ q }}" autofocus
+                           placeholder="退烧 / 拉肚子 / 创可贴"
+                           class="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                    <button type="submit" class="px-4 py-3 bg-blue-600 text-white rounded-xl">🔍</button>
+                </form>
+            </div>
+
+            <main class="px-4 py-4">
+                {% if q %}
+                    <!-- 智能症状推荐（核心场景） -->
+                    {% if suggestions %}
+                    <div class="mb-4">
+                        <h3 class="text-sm font-medium text-gray-700 mb-2">💡 按症状找</h3>
+                        {% for s in suggestions %}
+                        <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 mb-2">
+                            <div class="flex items-center justify-between mb-2">
+                                <div>
+                                    <span class="text-xs text-blue-700">你搜的是</span>
+                                    <span class="font-medium ml-1">"{{ s.keyword }}"</span>
+                                    <span class="text-xs text-blue-700 ml-1">→ 归类为</span>
+                                    <span class="font-medium ml-1 text-blue-700">{{ s.category }}</span>
+                                </div>
+                                <span class="text-xs bg-blue-600 text-white px-2 py-1 rounded-full">{{ s.count }} 个</span>
+                            </div>
+                            {% if s.samples %}
+                            <div class="space-y-1">
+                                {% for m in s.samples %}
+                                <a href="{{ url_for('medicine_detail', mid=m.id) }}"
+                                   class="block bg-white rounded-lg p-2 text-sm hover:bg-blue-50">
+                                    <div class="flex items-center justify-between">
+                                        <span class="font-medium">{{ m.name }}</span>
+                                        <span class="text-xs text-gray-500">📍 {{ m.location }}</span>
+                                    </div>
+                                </a>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <!-- 精确匹配结果 -->
+                    {% if results %}
+                    <div class="mb-4">
+                        <h3 class="text-sm font-medium text-gray-700 mb-2">
+                            🎯 直接匹配 <span class="text-gray-400">({{ results|length }})</span>
+                        </h3>
+                        <div class="space-y-2">
+                            {% for m in results %}
+                            <a href="{{ url_for('medicine_detail', mid=m.id) }}"
+                               class="block bg-white border-2 rounded-xl p-3 hover:shadow-md transition
+                                      {% if m.color == 'red' %}border-red-400
+                                      {% elif m.color == 'yellow' %}border-yellow-400
+                                      {% else %}border-gray-200{% endif %}">
+                                <div class="flex items-start justify-between">
+                                    <div>
+                                        <div class="font-semibold text-gray-900">{{ m.name }}</div>
+                                        <div class="text-xs text-gray-500 mt-1">
+                                            📍 <span class="font-medium text-blue-700">{{ m.location }}</span>
+                                            · 剩 {{ m.remaining_pct }}%
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="text-xs font-bold
+                                                    {% if m.color == 'red' %}text-red-600
+                                                    {% elif m.color == 'yellow' %}text-yellow-600
+                                                    {% else %}text-green-600{% endif %}">
+                                            {{ m.days_text }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if not results and not suggestions %}
+                    <div class="text-center py-12 text-gray-400">
+                        <div class="text-5xl mb-3">🔍</div>
+                        <p>没有找到 "{{ q }}" 相关药品</p>
+                        <p class="text-xs mt-2">试试：退烧 / 感冒 / 拉肚子 / 创可贴</p>
+                    </div>
+                    {% endif %}
+
+                {% else %}
+                    <!-- 搜索引导 - 突出"找药"场景 -->
+                    <div class="text-center py-8">
+                        <div class="text-5xl mb-4">🔍</div>
+                        <p class="text-lg text-gray-700 font-medium">问药箱，不用翻抽屉</p>
+                        <p class="text-sm text-gray-500 mt-2">输入症状或药品名</p>
+                    </div>
+
+                    <div class="mt-6">
+                        <h3 class="text-sm font-medium text-gray-700 mb-3">💊 按症状找</h3>
+                        <div class="grid grid-cols-2 gap-2">
+                            <a href="{{ url_for('search', q='退烧') }}" class="bg-blue-50 border border-blue-200 rounded-xl p-3 text-center hover:bg-blue-100">
+                                <div class="text-2xl mb-1">🤒</div>
+                                <div class="text-sm font-medium">退烧</div>
+                            </a>
+                            <a href="{{ url_for('search', q='拉肚子') }}" class="bg-blue-50 border border-blue-200 rounded-xl p-3 text-center hover:bg-blue-100">
+                                <div class="text-2xl mb-1">🤢</div>
+                                <div class="text-sm font-medium">拉肚子</div>
+                            </a>
+                            <a href="{{ url_for('search', q='创可贴') }}" class="bg-blue-50 border border-blue-200 rounded-xl p-3 text-center hover:bg-blue-100">
+                                <div class="text-2xl mb-1">🩹</div>
+                                <div class="text-sm font-medium">创可贴</div>
+                            </a>
+                            <a href="{{ url_for('search', q='维生素') }}" class="bg-blue-50 border border-blue-200 rounded-xl p-3 text-center hover:bg-blue-100">
+                                <div class="text-2xl mb-1">💊</div>
+                                <div class="text-sm font-medium">维生素</div>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="mt-6 bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+                        <p class="text-xs text-yellow-800">
+                            💡 <strong>这是边界声明</strong>：本产品不提供症状推荐或用药建议。
+                            这里只是按你描述的症状，帮你找到家里已有的对应药品——决策权在你。
+                        </p>
+                    </div>
+                {% endif %}
+            </main>
+
+            <footer class="px-4 py-3 border-t bg-white">
+                <a href="{{ url_for('index') }}" class="block w-full text-center py-2 bg-gray-100 text-gray-700 rounded-lg">
+                    ← 返回药箱屏幕
+                </a>
+            </footer>
+        </div>
+    </div>
+</body>
+</html>

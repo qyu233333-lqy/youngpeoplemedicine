@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>添加药品</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <header class="bg-white shadow-sm">
+        <div class="max-w-3xl mx-auto px-4 py-4 flex items-center">
+            <a href="{{ url_for('index') }}" class="text-gray-500 hover:text-gray-700 mr-3">← 返回</a>
+            <h1 class="text-lg font-semibold">📷 添加药品</h1>
+        </div>
+    </header>
+
+    <main class="max-w-3xl mx-auto px-4 py-6">
+        <!-- 步骤指示 -->
+        <div class="flex items-center justify-center mb-6">
+            <div id="step1-indicator" class="step-indicator active">1 上传</div>
+            <div class="step-line"></div>
+            <div id="step2-indicator" class="step-indicator">2 识别</div>
+            <div class="step-line"></div>
+            <div id="step3-indicator" class="step-indicator">3 位置</div>
+            <div class="step-line"></div>
+            <div id="step4-indicator" class="step-indicator">4 入库</div>
+        </div>
+
+        <!-- Step 1: 上传 -->
+        <section id="step-upload" class="step-section">
+            <h2 class="text-lg font-semibold mb-4">📸 上传药品盒照片</h2>
+            <p class="text-sm text-gray-500 mb-4">智能药箱会自动识别药品并定位存放位置</p>
+
+            <div id="dropzone"
+                 class="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition">
+                <div class="text-5xl mb-4">📷</div>
+                <p class="text-gray-600">点击或拖拽上传图片</p>
+                <p class="text-xs text-gray-400 mt-2">支持 JPG / PNG / WebP</p>
+                <input type="file" id="file-input" accept="image/*" class="hidden">
+            </div>
+
+            <div class="mt-4 text-xs text-gray-400">
+                <p>💡 演示提示：</p>
+                <ul class="mt-1 space-y-1">
+                    <li>· 文件名含药品名（如"布洛芬.jpg"）会被识别</li>
+                    <li>· 文件名含 "fail" 触发识别失败演示</li>
+                    <li>· 之后会让你选择放在哪个位置</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Step 2: Loading -->
+        <section id="step-loading" class="step-section hidden">
+            <div class="text-center py-16">
+                <div class="inline-block animate-spin text-5xl mb-4">⏳</div>
+                <h2 class="text-lg font-semibold text-gray-700">AI 正在识别...</h2>
+            </div>
+        </section>
+
+        <!-- Step 3: 确认 + 选位置 -->
+        <section id="step-confirm" class="step-section hidden">
+            <h2 class="text-lg font-semibold mb-4">✏️ 确认信息 + 选择位置</h2>
+
+            <!-- 异常：识别失败 -->
+            <div id="error-failed" class="hidden bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                <div class="flex items-start">
+                    <span class="text-2xl mr-3">❌</span>
+                    <div>
+                        <h3 class="font-medium text-red-700">识别失败</h3>
+                        <p id="error-failed-msg" class="text-sm text-red-600 mt-1"></p>
+                        <button onclick="resetUpload()" class="mt-2 text-sm text-red-700 underline">重新上传</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 异常：识别不完整 -->
+            <div id="error-warning" class="hidden bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                <div class="flex items-start">
+                    <span class="text-2xl mr-3">⚠️</span>
+                    <div>
+                        <h3 class="font-medium text-yellow-700">部分字段识别失败</h3>
+                        <p class="text-sm text-yellow-600 mt-1">请手动补全下方高亮字段</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 重复检测 -->
+            <div id="duplicate-alert" class="hidden bg-orange-50 border border-orange-200 rounded-lg p-4 mb-4">
+                <div class="flex items-start">
+                    <span class="text-2xl mr-3">🔁</span>
+                    <div class="flex-1">
+                        <h3 class="font-medium text-orange-700">检测到重复药品</h3>
+                        <p id="duplicate-msg" class="text-sm text-orange-600 mt-1"></p>
+                        <div class="flex gap-2 mt-3">
+                            <button id="merge-btn" class="px-3 py-1.5 bg-orange-600 text-white text-sm rounded">合并库存</button>
+                            <button id="force-create-btn" class="px-3 py-1.5 bg-white border border-orange-300 text-orange-700 text-sm rounded">还是新建</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 表单 -->
+            <form id="confirm-form" class="bg-white rounded-lg p-4 space-y-4">
+                <input type="hidden" id="form-image-path">
+
+                <div>
+                    <label class="text-sm text-gray-600">药品名 <span class="text-red-500">*</span></label>
+                    <input type="text" id="form-name" required class="mt-1 w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-sm text-gray-600">品牌</label>
+                        <input type="text" id="form-brand" class="mt-1 w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="text-sm text-gray-600">规格</label>
+                        <input type="text" id="form-spec" class="mt-1 w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-sm text-gray-600">分类 <span class="text-red-500">*</span></label>
+                        <select id="form-category" required class="mt-1 w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                            <option value="感冒">感冒</option>
+                            <option value="肠胃">肠胃</option>
+                            <option value="外用">外用</option>
+                            <option value="保健">保健</option>
+                            <option value="其他">其他</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-sm text-gray-600">有效期</label>
+                        <input type="date" id="form-expiry" class="mt-1 w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <!-- 位置选择 - 核心新增 -->
+                <div>
+                    <label class="text-sm text-gray-600">📍 放在药箱哪里？ <span class="text-red-500">*</span></label>
+                    <div class="mt-2 grid grid-cols-3 gap-2" id="location-grid">
+                        <button type="button" class="loc-btn" data-loc="抽屉A·第1格">抽屉A·1格</button>
+                        <button type="button" class="loc-btn" data-loc="抽屉A·第2格">抽屉A·2格</button>
+                        <button type="button" class="loc-btn" data-loc="抽屉A·第3格">抽屉A·3格</button>
+                        <button type="button" class="loc-btn" data-loc="抽屉B·第1格">抽屉B·1格</button>
+                        <button type="button" class="loc-btn" data-loc="抽屉B·第2格">抽屉B·2格</button>
+                        <button type="button" class="loc-btn" data-loc="抽屉B·第3格">抽屉B·3格</button>
+                        <button type="button" class="loc-btn" data-loc="上层·小盒">上层·小盒</button>
+                        <button type="button" class="loc-btn" data-loc="中层·小盒">中层·小盒</button>
+                        <button type="button" class="loc-btn" data-loc="下层·大盒">下层·大盒</button>
+                    </div>
+                    <input type="hidden" id="form-location" required>
+                    <p class="text-xs text-gray-400 mt-2">💡 选错没关系，添加后可修改</p>
+                </div>
+
+                <div>
+                    <label class="text-sm text-gray-600">备注</label>
+                    <input type="text" id="form-notes" placeholder="例如：搬家时妈妈给的" class="mt-1 w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+
+                <button type="submit" class="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition">
+                    ✓ 确认入库
+                </button>
+            </form>
+        </section>
+
+        <!-- Step 4: 成功 -->
+        <section id="step-success" class="step-section hidden">
+            <div class="text-center py-16">
+                <div class="text-6xl mb-4">✅</div>
+                <h2 class="text-xl font-semibold text-green-600">入库成功</h2>
+                <p class="text-gray-500 mt-2" id="success-msg"></p>
+                <div class="mt-6 flex gap-3 justify-center">
+                    <a href="{{ url_for('scan') }}" class="px-4 py-2 bg-blue-600 text-white rounded-lg">继续添加</a>
+                    <a href="{{ url_for('index') }}" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg">返回药箱</a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <style>
+        .step-indicator {
+            width: 60px; height: 28px; line-height: 28px; text-align: center;
+            border-radius: 14px; font-size: 12px; background: #e5e7eb; color: #6b7280;
+        }
+        .step-indicator.active { background: #2563eb; color: white; }
+        .step-indicator.done { background: #10b981; color: white; }
+        .step-line { width: 24px; height: 2px; background: #e5e7eb; margin: 0 6px; }
+        .step-section { animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .loc-btn {
+            padding: 12px 8px;
+            border: 2px solid #e5e7eb;
+            background: white;
+            border-radius: 8px;
+            font-size: 12px;
+            color: #374151;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .loc-btn:hover { border-color: #93c5fd; background: #eff6ff; }
+        .loc-btn.selected {
+            border-color: #2563eb;
+            background: #2563eb;
+            color: white;
+            font-weight: 600;
+        }
+    </style>
+
+    <script>
+        let ocrResult = null;
+
+        function goToStep(n) {
+            ['upload', 'loading', 'confirm', 'success'].forEach((s, i) => {
+                document.getElementById('step-' + s).classList.toggle('hidden', i !== n - 1);
+                const ind = document.getElementById('step' + (i + 1) + '-indicator');
+                ind.classList.remove('active', 'done');
+                if (i + 1 === n) ind.classList.add('active');
+                else if (i + 1 < n) ind.classList.add('done');
+            });
+        }
+
+        // 上传处理
+        const dropzone = document.getElementById('dropzone');
+        const fileInput = document.getElementById('file-input');
+
+        dropzone.addEventListener('click', () => fileInput.click());
+        dropzone.addEventListener('dragover', e => {
+            e.preventDefault();
+            dropzone.classList.add('border-blue-400', 'bg-blue-50');
+        });
+        dropzone.addEventListener('dragleave', () => {
+            dropzone.classList.remove('border-blue-400', 'bg-blue-50');
+        });
+        dropzone.addEventListener('drop', e => {
+            e.preventDefault();
+            dropzone.classList.remove('border-blue-400', 'bg-blue-50');
+            if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+        });
+        fileInput.addEventListener('change', e => {
+            if (e.target.files.length) handleFile(e.target.files[0]);
+        });
+
+        function handleFile(file) {
+            goToStep(2);
+            const formData = new FormData();
+            formData.append('image', file);
+            fetch('/api/scan', { method: 'POST', body: formData })
+                .then(r => r.json())
+                .then(data => {
+                    ocrResult = data;
+                    showConfirm(data);
+                })
+                .catch(err => {
+                    alert('上传失败: ' + err);
+                    goToStep(1);
+                });
+        }
+
+        function showConfirm(data) {
+            goToStep(3);
+
+            if (!data.success) {
+                document.getElementById('error-failed').classList.remove('hidden');
+                document.getElementById('error-failed-msg').textContent = data.error || '未知错误';
+                document.getElementById('confirm-form').classList.add('hidden');
+                return;
+            }
+            document.getElementById('error-failed').classList.add('hidden');
+
+            document.getElementById('form-name').value = data.name || '';
+            document.getElementById('form-brand').value = data.brand || '';
+            document.getElementById('form-spec').value = data.spec || '';
+            document.getElementById('form-category').value = data.category || '其他';
+            document.getElementById('form-expiry').value = data.expiry_date || '';
+            document.getElementById('form-image-path').value = data.image_path || '';
+
+            if (data.warning) {
+                document.getElementById('error-warning').classList.remove('hidden');
+                document.getElementById('form-expiry').classList.add('border-yellow-500');
+                document.getElementById('form-expiry').required = true;
+            } else {
+                document.getElementById('error-warning').classList.add('hidden');
+                document.getElementById('form-expiry').classList.remove('border-yellow-500');
+            }
+        }
+
+        function resetUpload() {
+            document.getElementById('error-failed').classList.add('hidden');
+            document.getElementById('confirm-form').classList.remove('hidden');
+            goToStep(1);
+        }
+
+        // 位置选择
+        document.querySelectorAll('.loc-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.loc-btn').forEach(b => b.classList.remove('selected'));
+                btn.classList.add('selected');
+                document.getElementById('form-location').value = btn.dataset.loc;
+            });
+        });
+
+        // 重复处理
+        document.getElementById('merge-btn').addEventListener('click', async () => {
+            if (!ocrResult || !ocrResult.duplicate) return;
+            const existing = ocrResult.existing;
+            const addPct = parseInt(prompt(`当前 ${existing.name} 剩余 ${existing.remaining_pct}%\n合并后新增百分之多少？`, '50') || '0', 10);
+            if (!addPct) return;
+            const r = await fetch(`/api/medicines/${existing.id}/merge`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({add_pct: addPct})
+            });
+            const data = await r.json();
+            if (data.success) {
+                document.getElementById('success-msg').textContent = `已将新药品合并到现有库存`;
+                goToStep(4);
+            }
+        });
+
+        document.getElementById('force-create-btn').addEventListener('click', () => {
+            document.getElementById('duplicate-alert').classList.add('hidden');
+            document.getElementById('confirm-form').dataset.forceCreate = '1';
+        });
+
+        // 提交入库
+        document.getElementById('confirm-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const location = document.getElementById('form-location').value;
+            if (!location) {
+                alert('请选择存放位置');
+                return;
+            }
+            const payload = {
+                name: document.getElementById('form-name').value.trim(),
+                brand: document.getElementById('form-brand').value.trim(),
+                spec: document.getElementById('form-spec').value.trim(),
+                category: document.getElementById('form-category').value,
+                location: location,
+                expiry_date: document.getElementById('form-expiry').value || null,
+                notes: document.getElementById('form-notes').value.trim(),
+                image_path: document.getElementById('form-image-path').value,
+                force_create: document.getElementById('confirm-form').dataset.forceCreate === '1',
+            };
+
+            const r = await fetch('/api/medicines', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            });
+            const data = await r.json();
+
+            if (data.duplicate) {
+                document.getElementById('duplicate-alert').classList.remove('hidden');
+                document.getElementById('duplicate-msg').textContent =
+                    `已有 ${data.existing.name} (${data.existing.brand})，位置：${data.existing.location}，剩 ${data.existing.remaining_pct}%`;
+                ocrResult = data;
+                return;
+            }
+
+            if (data.success) {
+                document.getElementById('success-msg').textContent = `${payload.name} 已加入 ${payload.location}`;
+                goToStep(4);
+            } else {
+                alert('入库失败: ' + data.error);
+            }
+        });
+    </script>
+</body>
+</html>
