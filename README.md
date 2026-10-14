@@ -1,213 +1,119 @@
-# 🏠 智能药箱 Demo
+# 🏠 智能药箱 Demo v1
 
-## 一句话定位
-> 第一版服务 25-30 岁独居/合租白领。解决一件事：你家抽屉里那堆不知道过期没、找不到、重复买的药，让你能"3 分钟拍完、随时查到、永不吃过期"。
+> **第一版服务 25-30 岁独居/合租白领**。解决一件事：让你随时知道"我家有什么药、放在哪、还能不能吃"。
 
-## 🚀 快速开始
+## 🌐 在线 Demo
 
-### 1. 安装依赖
+**https://youngpeoplemedicine-production.up.railway.app**
+
+无需任何配置，浏览器直接打开。
+
+## 📂 项目文档
+
+| 文档 | 作用 |
+|------|------|
+| **[PRODUCT.md](./PRODUCT.md)** | 产品说明（题目要求 ①） |
+| **[RUN.md](./RUN.md)** | 简单运行说明（题目要求 ②） |
+| **[RETROSPECTIVE.md](./RETROSPECTIVE.md)** | 复盘（题目要求 ③） |
+
+## ⚡ 快速开始（30 秒）
+
 ```bash
-cd medicine-box-demo
+# 1. 克隆
+git clone https://github.com/qyu233333-lqy/youngpeoplemedicine.git
+cd youngpeoplemedicine
+
+# 2. 装依赖
 pip install -r requirements.txt
+
+# 3. 跑
+python3 app.py
+
+# 4. 浏览器打开 http://localhost:5050
 ```
 
-### 2. 启动
-```bash
-python app.py
-```
+完整说明见 **[RUN.md](./RUN.md)**。
 
-### 3. 访问
-打开浏览器：http://localhost:5000
+## 🎯 一句话定位
 
-首次启动会自动创建 SQLite 数据库 + 填充 7 条示例药品数据。
+> **"对于平时很少管理药品、需要时才打开药箱的年轻人，智能药箱第一版解决：让你不用翻抽屉、不用打开手机 App，看一眼药箱屏幕就知道答案。"**
 
-## 📂 项目结构
+## 🌟 核心洞察
+
+1. **形态决策**：题目说"用户很少管理、需要时才打开"→ App 形态是错的 → **带屏幕的智能药箱**才是正确解
+2. **多模态入库**：拍照 OCR + 快速添加（5 秒）+ 条码扫描 → 给用户最优路径
+3. **边界即护城河**：不做症状推荐、不做诊断 → 别人想做不敢做，我们守边界就是守信任
+
+## 🔑 关键能力
+
+- 🔍 **找药**：输入症状（"退烧"）→ 显示位置（"抽屉A·第1格"）
+- ⚡ **快速添加**：5 秒入库，45 个常见 OTC 药品库
+- 📷 **拍照入库**：MiniMax M3.1 视觉模型真实识别
+- ⏰ **过期预警**：30 天/7 天/1 天分级提醒
+- 🔁 **重复检测**：同品牌入库前提示合并
+
+## 🤖 AI 集成
+
+- **OCR 视觉识别**：MiniMax M3.1 Flash Preview（支持图像）
+- **LLM 自动分类**：结构化输出感冒/肠胃/外用/保健
+- **降级方案**：API 失败 → Mock 模式（基于关键词）
+
+## 📊 技术栈
+
+- **后端**：Python 3.11 + Flask + SQLite
+- **前端**：Tailwind CSS（CDN）+ 原生 JavaScript
+- **部署**：Railway + Gunicorn
+- **AI**：MiniMax API（OpenAI 兼容接口）
+
+## ⏱️ 投入时间
+
+约 9 小时（含产品思考 + 代码 + 部署 + 文档）
+
+详细复盘见 **[RETROSPECTIVE.md](./RETROSPECTIVE.md)**
+
+## 📁 文件结构
 
 ```
 medicine-box-demo/
-├── app.py                  # Flask 主程序（472 行）
-├── requirements.txt        # 依赖（Flask）
-├── medicine_box.db         # SQLite 数据库（自动生成）
-├── README.md               # 本文件
-├── templates/
-│   ├── index.html          # 首页 - 库存总览
-│   ├── scan.html           # 拍照入库页（核心流程）
-│   ├── medicine_detail.html # 药品详情页
-│   └── search.html         # 搜索页
-├── static/
-│   └── style.css           # 自定义样式
-└── uploads/                # 上传图片（自动生成）
+├── PRODUCT.md            ← 产品说明
+├── RUN.md                ← 简单运行说明
+├── RETROSPECTIVE.md      ← 复盘
+├── README.md             ← 本文件
+├── app.py                ← Flask 主程序
+├── requirements.txt      ← 依赖
+├── Procfile              ← Railway 启动
+├── railway.toml          ← Railway 配置
+├── runtime.txt           ← Python 版本
+├── .env.example          ← 环境变量模板
+├── .gitignore
+├── start.sh              ← 本地启动脚本
+├── static/style.css
+├── templates/            ← 5 个 HTML 模板
+│   ├── index.html        ← 智能药箱屏幕（首页）
+│   ├── scan.html         ← 拍照入库
+│   ├── quick_add.html    ← 快速添加
+│   ├── search.html       ← 找药
+│   └── medicine_detail.html
+└── uploads/              ← 用户上传图片
 ```
 
-## 🎯 核心功能
+## 📞 链接
 
-| 功能 | 路径 | 状态 |
-|------|------|------|
-| 库存总览（分类筛选 + 过期预警） | `/` | ✅ |
-| 拍照入库（OCR + LLM 分类 + 重复检测） | `/scan` | ✅ |
-| 药品详情（编辑剩余 + 标记丢弃） | `/medicine/<id>` | ✅ |
-| 智能搜索（"我家有没有 X"） | `/search` | ✅ |
-
-## 🤖 AI 能力（Mock 模式，无需 API Key）
-
-### 1. OCR 识别（Mock）
-- 根据上传文件名的关键词匹配药品库
-- 15% 概率模拟"识别失败"（文件名包含 "fail"）
-- 10% 概率模拟"识别不完整"（缺有效期）
-
-### 2. LLM 分类（Mock）
-- 基于关键词规则匹配：感冒 / 肠胃 / 外用 / 保健 / 其他
-
-### 3. 重复检测
-- 入库前自动检测同品牌药品
-- 提示"合并库存"或"新建"
-
-### 4. 过期预警
-- 已过期：红色
-- 30 天内：黄色
-- 正常：绿色
-
-## 🧪 异常处理演示
-
-**演示 1：识别失败**
-- 上传文件名包含 "fail" 的图片（如 `fail_test.jpg`）
-- 系统提示"识别失败"，引导手动录入
-
-**演示 2：识别不完整**
-- 上传文件名包含 "999" 的图片（如 `感冒灵.jpg`）
-- 随机 10% 概率触发"有效期识别失败"提示
-
-**演示 3：重复药品**
-- 上传维生素 C 相关图片
-- 系统提示"已有 1 个维生素 C，是否合并？"
-
-## 🎬 演示脚本（5 分钟）
-
-```
-1. (30s) 首页展示：
-   - 看到 7 个示例药品
-   - 顶部红色 banner：1 个已过期
-   - 顶部黄色 banner：1 个即将过期
-
-2. (1min) 搜索演示：
-   - 搜索"退烧"
-   - 找到布洛芬
-
-3. (1min) 正常识别：
-   - 上传"布洛芬.jpg"
-   - OCR 成功 → 自动分类"感冒"
-   - 入库成功
-
-4. (1min) 异常处理：
-   - 上传"fail_test.jpg"
-   - 识别失败 → 提示手动录入
-   - 手动填入正确信息 → 入库成功
-
-5. (1min) 重复检测：
-   - 上传"维生素.jpg"
-   - 检测到已有维生素 C
-   - 选择"合并库存"
-   - 库存百分比上升
-
-6. 总结：边界声明 - 不做症状推荐、诊断
-```
-
-## 🔧 切换到真实 API（可选）
-
-### 百度 OCR
-设置环境变量：
-```bash
-export BAIDU_OCR_API_KEY="your_key"
-```
-
-### OpenAI / Qwen LLM
-在 `app.py` 中修改 `classify_medicine` 函数调用真实 API。
-
-## 📋 边界声明
-
-本 Demo 严格遵守产品边界：
-- ✅ 只做：库存管理、过期提醒、重复检测、查询
-- ❌ 不做：症状推荐、疾病诊断、处方药管理、用药建议
-
-所有 AI 输出限定为"事实呈现"（如"这盒药 2024-12 到期"），不做"行动建议"（如"建议你吃这个"）。
-
-## 📊 数据流（核心流程）
-
-```
-用户上传图片 
-  → POST /api/scan 
-  → OCR 识别（药品名/品牌/规格/有效期）
-  → LLM 分类（感冒/肠胃/外用/保健）
-  → 重复检测
-  → 用户确认表单（可编辑）
-  → POST /api/medicines
-  → 写入 SQLite
-  → 跳回首页，库存更新
-```
+- 🌐 **在线 Demo**：https://youngpeoplemedicine-production.up.railway.app
+- 💻 **GitHub 仓库**：https://github.com/qyu233333-lqy/youngpeoplemedicine
 
 ---
 
-## 🚀 部署上线
+## 📝 提交清单
 
-### 方案 A：Railway 一键部署（推荐）
+按题目要求（03 提交内容与规则）：
 
-1. 把项目推到 GitHub：
-```bash
-git init
-git add .
-git commit -m "init"
-# 在 GitHub 创建 repo，然后：
-git remote add origin https://github.com/yourname/medicine-box-demo.git
-git push -u origin main
-```
-
-2. 到 [railway.app](https://railway.app) 用 GitHub 登录
-
-3. 点击 "New Project" → "Deploy from GitHub repo" → 选这个项目
-
-4. 在 Variables 里设置环境变量：
-   - `MINIMAX_API_KEY` = 你的真实 Key
-
-5. Railway 自动检测 Python + gunicorn，给你一个 https://xxx.up.railway.app URL
-
-### 方案 B：Render 部署
-
-1. 推 GitHub（同上）
-2. 到 [render.com](https://render.com) 用 GitHub 登录
-3. New Web Service → 选 repo
-4. 设置：
-   - Build Command: `pip install -r requirements.txt`
-   - Start Command: `gunicorn app:app --bind 0.0.0.0:$PORT`
-5. 添加环境变量 `MINIMAX_API_KEY`
-
-### 方案 C：本地公网暴露（ngrok）
-
-```bash
-# 启动 Flask
-python3 app.py
-
-# 另一个终端
-ngrok http 5050
-# 得到 https://xxx.ngrok-free.app
-```
-
-### ⚠️ SQLite 在云平台注意事项
-
-Railway/Render 免费版重启会丢数据。如果需要持久化：
-- Railway: 加 Volume 挂载到 `/app/data`
-- Render: 用 Persistent Disk（需付费）
-- 或者换 PostgreSQL（免费层用 Neon/Supabase）
-
-**笔试场景下数据丢失无所谓**，重启后重新入库即可。
-
----
-
-## 🔑 环境变量
-
-| 变量 | 必填 | 说明 |
-|------|------|------|
-| `MINIMAX_API_KEY` | 否 | 没填则降级 Mock OCR |
-| `MINIMAX_API_BASE` | 否 | 默认 `https://api.minimaxi.com/v1` |
-| `MINIMAX_MODEL` | 否 | 默认 `MiniMax-M3` |
-| `PORT` | 自动 | Railway/Render 会自动注入 |
-| `DB_PATH` | 否 | SQLite 数据库路径，默认 `data/medicine_box.db` |
+| 项 | 文件 | 状态 |
+|---|------|------|
+| ① 产品说明 | `PRODUCT.md` | ✅ |
+| ② 部署 Demo | Railway URL | ✅ |
+| ② 源代码 | `app.py` + `templates/` | ✅ |
+| ② 简单运行说明 | `RUN.md` | ✅ |
+| ③ 复盘 | `RETROSPECTIVE.md` | ✅ |
+| AI/Coding 工具 | `RETROSPECTIVE.md` 第六节 | ✅ |
+| 实际投入时间 | `RETROSPECTIVE.md` / `PRODUCT.md` | ✅ |
