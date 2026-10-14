@@ -67,7 +67,7 @@ python3 app.py
 
 ## ⏱️ 投入时间
 
-约 9 小时（含产品思考 + 代码 + 部署 + 文档）
+约 4 小时（含产品思考 + 代码 + 部署 + 文档）
 
 详细复盘见 **[RETROSPECTIVE.md](./RETROSPECTIVE.md)**
 
