@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>快速添加</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .device-frame {
+            background: #000;
+            border-radius: 24px;
+            padding: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5), inset 0 0 0 2px #333;
+        }
+        .screen {
+            background: #fafaf7;
+            border-radius: 14px;
+            width: 100%;
+            max-width: 420px;
+            min-height: 720px;
+        }
+        .result-card {
+            transition: all 0.2s;
+        }
+        .result-card:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .result-card.selected {
+            border-color: #2563eb;
+            background: #eff6ff;
+        }
+    </style>
+</head>
+<body>
+    <div class="device-frame">
+        <div class="screen">
+
+            <header class="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-3">
+                <div class="flex items-center gap-3">
+                    <a href="{{ url_for('index') }}" class="text-white/80">←</a>
+                    <h1 class="text-lg font-bold">🔍 快速添加</h1>
+                </div>
+            </header>
+
+            <!-- 搜索框 -->
+            <div class="px-4 py-3 bg-white border-b">
+                <form method="GET" class="flex gap-2">
+                    <input type="text" name="q" value="{{ q }}" autofocus
+                           placeholder="搜药名 / 品牌（如：布洛芬）"
+                           class="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                    <button type="submit" class="px-4 py-3 bg-blue-600 text-white rounded-xl">🔍</button>
+                </form>
+                <p class="text-xs text-gray-400 mt-2">💡 不用拍照，5 秒入库</p>
+            </div>
+
+            <!-- 快捷入口 -->
+            {% if not q %}
+            <div class="px-4 py-3 bg-gray-50">
+                <h3 class="text-sm font-medium text-gray-700 mb-2">⚡ 热门分类</h3>
+                <div class="flex flex-wrap gap-2">
+                    <a href="{{ url_for('quick_add', q='感冒') }}" class="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-full text-sm border border-blue-200">感冒</a>
+                    <a href="{{ url_for('quick_add', q='肠胃') }}" class="px-3 py-1.5 bg-purple-50 text-purple-700 rounded-full text-sm border border-purple-200">肠胃</a>
+                    <a href="{{ url_for('quick_add', q='外用') }}" class="px-3 py-1.5 bg-pink-50 text-pink-700 rounded-full text-sm border border-pink-200">外用</a>
+                    <a href="{{ url_for('quick_add', q='保健') }}" class="px-3 py-1.5 bg-green-50 text-green-700 rounded-full text-sm border border-green-200">保健</a>
+                </div>
+            </div>
+            {% endif %}
+
+            <main class="px-4 py-4">
+                {% if q and results %}
+                <div class="mb-3 text-sm text-gray-600">
+                    找到 <span class="font-medium">{{ results|length }}</span> 个匹配
+                </div>
+                <div class="space-y-2" id="results">
+                    {% for m in results %}
+                    <div class="result-card bg-white border-2 border-gray-200 rounded-xl p-3 cursor-pointer"
+                         data-name="{{ m.name }}" data-brand="{{ m.brand }}" data-spec="{{ m.spec }}" data-category="{{ m.category }}">
+                        <div class="flex items-start justify-between">
+                            <div class="flex-1">
+                                <div class="font-semibold text-gray-900">{{ m.name }}</div>
+                                <div class="text-xs text-gray-500 mt-1">{{ m.brand }} · {{ m.spec }}</div>
+                            </div>
+                            <span class="text-xs px-2 py-0.5 rounded
+                                {% if m.category == '感冒' %}bg-blue-100 text-blue-700
+                                {% elif m.category == '肠胃' %}bg-purple-100 text-purple-700
+                                {% elif m.category == '外用' %}bg-pink-100 text-pink-700
+                                {% elif m.category == '保健' %}bg-green-100 text-green-700
+                                {% else %}bg-gray-100 text-gray-700{% endif %}">
+                                {{ m.category }}
+                            </span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- 选位置入库表单 -->
+                <div id="add-form" class="hidden mt-4 bg-blue-50 border-2 border-blue-300 rounded-xl p-4">
+                    <div class="text-sm text-blue-700 mb-3">
+                        ✓ 已选：<span id="selected-name" class="font-bold"></span>
+                        <span id="selected-brand" class="text-xs"></span>
+                    </div>
+                    <div class="text-xs text-gray-600 mb-2">📍 放在药箱哪里？</div>
+                    <div class="grid grid-cols-3 gap-2 mb-3">
+                        <button type="button" class="loc-pick" data-loc="抽屉A·第1格">抽屉A·1格</button>
+                        <button type="button" class="loc-pick" data-loc="抽屉A·第2格">抽屉A·2格</button>
+                        <button type="button" class="loc-pick" data-loc="抽屉A·第3格">抽屉A·3格</button>
+                        <button type="button" class="loc-pick" data-loc="抽屉B·第1格">抽屉B·1格</button>
+                        <button type="button" class="loc-pick" data-loc="抽屉B·第2格">抽屉B·2格</button>
+                        <button type="button" class="loc-pick" data-loc="抽屉B·第3格">抽屉B·3格</button>
+                        <button type="button" class="loc-pick" data-loc="上层·小盒">上层·小盒</button>
+                        <button type="button" class="loc-pick" data-loc="中层·小盒">中层·小盒</button>
+                        <button type="button" class="loc-pick" data-loc="下层·大盒">下层·大盒</button>
+                    </div>
+                    <div class="text-xs text-gray-600 mb-2">有效期</div>
+                    <input type="date" id="expiry-input"
+                           class="w-full px-3 py-2 border rounded-lg mb-3 focus:ring-2 focus:ring-blue-500 outline-none">
+                    <div class="text-xs text-gray-600 mb-2">备注（可选）</div>
+                    <input type="text" id="notes-input" placeholder="例如：搬家时妈妈给的"
+                           class="w-full px-3 py-2 border rounded-lg mb-3 focus:ring-2 focus:ring-blue-500 outline-none">
+                    <button id="submit-add" class="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition">
+                        ✓ 确认入库
+                    </button>
+                </div>
+
+                {% elif q %}
+                <div class="text-center py-12 text-gray-400">
+                    <div class="text-5xl mb-3">🔍</div>
+                    <p>没有 "{{ q }}" 相关的常见药品</p>
+                    <p class="text-xs mt-2">试试：布洛芬、感冒灵、创可贴</p>
+                    <p class="text-xs mt-1">或者用拍照识别</p>
+                    <a href="{{ url_for('scan') }}" class="inline-block mt-3 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg text-sm">
+                        改用拍照识别 →
+                    </a>
+                </div>
+
+                {% else %}
+                <div class="text-center py-8 text-gray-400">
+                    <div class="text-5xl mb-4">🔍</div>
+                    <p class="text-gray-700 font-medium">不用拍照，直接搜</p>
+                    <p class="text-sm mt-2">40+ 常见 OTC 药品，搜名字即可入库</p>
+                </div>
+                {% endif %}
+            </main>
+
+            <footer class="px-4 py-3 border-t bg-white">
+                <a href="{{ url_for('scan') }}" class="block w-full text-center py-2 bg-gray-100 text-gray-700 rounded-lg text-sm mb-2">
+                    📷 改用拍照识别
+                </a>
+                <a href="{{ url_for('index') }}" class="block w-full text-center py-2 text-gray-500 text-sm">
+                    ← 返回药箱屏幕
+                </a>
+            </footer>
+        </div>
+    </div>
+
+    <script>
+        let selected = null;
+        let selectedLocation = null;
+
+        // 选择药品
+        document.querySelectorAll('.result-card').forEach(card => {
+            card.addEventListener('click', () => {
+                document.querySelectorAll('.result-card').forEach(c => c.classList.remove('selected'));
+                card.classList.add('selected');
+                selected = {
+                    name: card.dataset.name,
+                    brand: card.dataset.brand,
+                    spec: card.dataset.spec,
+                    category: card.dataset.category
+                };
+                document.getElementById('selected-name').textContent = selected.name;
+                document.getElementById('selected-brand').textContent = `(${selected.brand})`;
+                document.getElementById('add-form').classList.remove('hidden');
+                document.getElementById('add-form').scrollIntoView({behavior: 'smooth', block: 'nearest'});
+            });
+        });
+
+        // 选择位置
+        document.querySelectorAll('.loc-pick').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.loc-pick').forEach(b => {
+                    b.classList.remove('bg-blue-600', 'text-white', 'font-medium');
+                    b.classList.add('bg-white', 'border', 'border-gray-300', 'text-gray-700');
+                });
+                btn.classList.add('bg-blue-600', 'text-white', 'font-medium');
+                btn.classList.remove('bg-white', 'border', 'border-gray-300', 'text-gray-700');
+                selectedLocation = btn.dataset.loc;
+            });
+        });
+
+        // 提交
+        document.getElementById('submit-add').addEventListener('click', async () => {
+            if (!selected) { alert('请先选择药品'); return; }
+            if (!selectedLocation) { alert('请选择位置'); return; }
+
+            const payload = {
+                name: selected.name,
+                brand: selected.brand,
+                spec: selected.spec,
+                category: selected.category,
+                location: selectedLocation,
+                expiry_date: document.getElementById('expiry-input').value || null,
+                notes: document.getElementById('notes-input').value,
+                remaining_pct: 100,
+                force_create: true  // 快速添加允许重复
+            };
+
+            const r = await fetch('/api/medicines', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            });
+            const data = await r.json();
+
+            if (data.duplicate) {
+                if (confirm(data.message + '\n\n是否合并库存？')) {
+                    const addPct = parseInt(prompt('合并百分之多少？', '50') || '0', 10);
+                    if (addPct) {
+                        await fetch(`/api/medicines/${data.existing.id}/merge`, {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({add_pct: addPct})
+                        });
+                    }
+                }
+            }
+
+            if (data.success || data.duplicate) {
+                location.href = '/';
+            } else {
+                alert('入库失败: ' + (data.error || '未知错误'));
+            }
+        });
+    </script>
+
+    <style>
+        .loc-pick {
+            padding: 10px 8px;
+            border: 2px solid #e5e7eb;
+            background: white;
+            border-radius: 8px;
+            font-size: 12px;
+            color: #374151;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .loc-pick:hover { border-color: #93c5fd; background: #eff6ff; }
+    </style>
+</body>
+</html>

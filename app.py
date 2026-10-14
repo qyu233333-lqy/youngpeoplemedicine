@@ -263,6 +263,59 @@ def real_ocr(image_path, filename=''):
 
 
 # ============== Mock LLM 分类 ==============
+# ============== 快速添加药品库 ==============
+QUICK_ADD_DB = [
+    # 感冒类
+    {'name': '布洛芬', 'brand': '芬必得', 'spec': '0.3g*20粒', 'category': '感冒'},
+    {'name': '布洛芬', 'brand': '美林', 'spec': '100ml', 'category': '感冒'},
+    {'name': '布洛芬缓释胶囊', 'brand': '芬必得', 'spec': '0.3g*20粒', 'category': '感冒'},
+    {'name': '感冒灵颗粒', 'brand': '999', 'spec': '10g*9袋', 'category': '感冒'},
+    {'name': '感冒清热颗粒', 'brand': '同仁堂', 'spec': '12g*10袋', 'category': '感冒'},
+    {'name': '板蓝根颗粒', 'brand': '白云山', 'spec': '10g*20袋', 'category': '感冒'},
+    {'name': '阿莫西林胶囊', 'brand': '石药', 'spec': '0.25g*24粒', 'category': '感冒'},
+    {'name': '对乙酰氨基酚', 'brand': '泰诺', 'spec': '0.5g*20片', 'category': '感冒'},
+    {'name': '复方感冒灵片', 'brand': '三九', 'spec': '0.3g*24片', 'category': '感冒'},
+    {'name': '维C银翘片', 'brand': '三九', 'spec': '0.5g*24片', 'category': '感冒'},
+    # 肠胃类
+    {'name': '蒙脱石散', 'brand': '思密达', 'spec': '3g*10袋', 'category': '肠胃'},
+    {'name': '蒙脱石散', 'brand': '博福-益普生', 'spec': '3g*6袋', 'category': '肠胃'},
+    {'name': '奥美拉唑肠溶胶囊', 'brand': '奥克', 'spec': '20mg*14粒', 'category': '肠胃'},
+    {'name': '多潘立酮片', 'brand': '吗丁啉', 'spec': '10mg*30片', 'category': '肠胃'},
+    {'name': '健胃消食片', 'brand': '江中', 'spec': '0.5g*36片', 'category': '肠胃'},
+    {'name': '保和丸', 'brand': '同仁堂', 'spec': '9g*10丸', 'category': '肠胃'},
+    {'name': '藿香正气水', 'brand': '太极', 'spec': '10ml*10支', 'category': '肠胃'},
+    {'name': '盐酸小檗碱片', 'brand': '三九', 'spec': '0.1g*24片', 'category': '肠胃'},
+    # 外用类
+    {'name': '创可贴', 'brand': '邦迪', 'spec': '20片', 'category': '外用'},
+    {'name': '创可贴', 'brand': '云南白药', 'spec': '50片', 'category': '外用'},
+    {'name': '云南白药气雾剂', 'brand': '云南白药', 'spec': '85g+30g', 'category': '外用'},
+    {'name': '云南白药膏', 'brand': '云南白药', 'spec': '6.5cm*10cm*5片', 'category': '外用'},
+    {'name': '红霉素眼膏', 'brand': '白云山', 'spec': '2.5g', 'category': '外用'},
+    {'name': '红霉素软膏', 'brand': '白云山', 'spec': '10g', 'category': '外用'},
+    {'name': '碘伏消毒液', 'brand': '利尔康', 'spec': '100ml', 'category': '外用'},
+    {'name': '医用酒精', 'brand': '利尔康', 'spec': '75%*500ml', 'category': '外用'},
+    {'name': '京万红软膏', 'brand': '京万红', 'spec': '10g', 'category': '外用'},
+    {'name': '风油精', 'brand': '白云山', 'spec': '3ml', 'category': '外用'},
+    {'name': '双氧水', 'brand': '利尔康', 'spec': '500ml', 'category': '外用'},
+    # 保健类
+    {'name': '维生素C', 'brand': '养生堂', 'spec': '100片', 'category': '保健'},
+    {'name': '维生素C', 'brand': '汤臣倍健', 'spec': '100片', 'category': '保健'},
+    {'name': '维生素D滴剂', 'brand': '星鲨', 'spec': '400单位*60粒', 'category': '保健'},
+    {'name': '维生素B族', 'brand': '养生堂', 'spec': '60片', 'category': '保健'},
+    {'name': '钙片', 'brand': '钙尔奇', 'spec': '600mg*60片', 'category': '保健'},
+    {'name': '钙片', 'brand': '汤臣倍健', 'spec': '600mg*60片', 'category': '保健'},
+    {'name': '叶酸片', 'brand': '斯利安', 'spec': '0.4mg*93片', 'category': '保健'},
+    {'name': 'DHA藻油', 'brand': '汤臣倍健', 'spec': '100粒', 'category': '保健'},
+    {'name': '鱼油软胶囊', 'brand': '汤臣倍健', 'spec': '100粒', 'category': '保健'},
+    {'name': '蛋白粉', 'brand': '汤臣倍健', 'spec': '400g', 'category': '保健'},
+    {'name': '复合维生素', 'brand': '善存', 'spec': '100片', 'category': '保健'},
+    {'name': '善存', 'brand': '善存', 'spec': '100片', 'category': '保健'},
+    {'name': '葡萄糖酸锌', 'brand': '三精', 'spec': '10ml*10支', 'category': '保健'},
+    {'name': '褪黑素', 'brand': '汤臣倍健', 'spec': '60片', 'category': '保健'},
+    {'name': '辅酶Q10', 'brand': '汤臣倍健', 'spec': '60粒', 'category': '保健'},
+]
+
+
 def classify_medicine(name, brand=''):
     rules = {
         '感冒': ['感冒', '布洛芬', '泰诺', '芬必得', '999', '板蓝根', '阿莫西林', '美林', '退烧', '止痛', '消炎'],
@@ -320,6 +373,31 @@ def index():
 @app.route('/scan')
 def scan():
     return render_template('scan.html')
+
+
+@app.route('/quick-add')
+def quick_add():
+    """快速添加页面：搜索 + 选择 + 入库"""
+    q = request.args.get('q', '').strip()
+    results = []
+    if q:
+        for m in QUICK_ADD_DB:
+            if (q.lower() in m['name'].lower() or
+                q.lower() in m['brand'].lower() or
+                q.lower() in m['category']):
+                results.append(m)
+    return render_template('quick_add.html', q=q, results=results)
+
+
+@app.route('/api/quick-search')
+def api_quick_search():
+    """快速搜索药品库"""
+    q = request.args.get('q', '').strip().lower()
+    if not q:
+        return jsonify([])
+    results = [m for m in QUICK_ADD_DB
+               if q in m['name'].lower() or q in m['brand'].lower() or q in m['category']]
+    return jsonify(results[:20])  # 最多返回 20 条
 
 
 @app.route('/medicine/<int:mid>')
